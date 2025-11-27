@@ -68,7 +68,7 @@ Download your **entire** Suno AI music library in seconds — with lyrics, album
 ## Tips & Tricks
 - Already downloaded songs are **automatically skipped**  
 - Use **STOP** anytime — just restart later and it resumes perfectly  
-- Large libraries (>5000 songs)? Download in chunks of 20–30 pages  
+- Large libraries (>5000 songs) Download in chunks of 20–30 pages  
 - Want clean filenames? Keep “Embed Metadata” ON  
 
 ## Requirements
