@@ -1,89 +1,94 @@
-# SunoSync 🎵 (v2.4.0)
+SunoSync – Source Code Repository 🎵
+Download your entire Suno AI music library with full metadata, lyrics, album art, and perfect ID3 tags
+⚠️ This is the official open-source repository for SunoSync (v2.4.0+).
+The tool remains unofficial and not affiliated with Suno AI. Use only for personal backup of songs you created.
+Features
 
-Download your **entire** Suno AI music library in seconds — with lyrics, album art, prompts, tags, and perfect metadata!
+Super-fast concurrent downloads (10–30 songs at once)
+Full embedded metadata & album art (title, artist, genre, year, lyrics, original prompt, tags)
+Smart resume / duplicate-safe resume
+Optional monthly folder organization
+Real-time progress bar, speed, and ETA
+Automatic retry on network errors
+Persistent settings & token storage
 
-## ⚠️ Important Legal Notice
-- This tool is **unofficial** and **not affiliated** with Suno AI  
-- Use **only for personal backup** of songs you created  
-- Downloading and redistributing Suno songs may violate their [Terms of Service](https://suno.com/terms)  
-- Pro/Premier users: sharing downloaded songs can risk your account  
-- **Use at your own risk** — the developer is not responsible for bans or issues
+Installation & Running from Source
+Bash# 1. Clone the repository
+git clone https://github.com/yourusername/SunoSync.git
+cd SunoSync
 
-## Features
-- ✨ Smart resume — never downloads the same song twice  
-- 🎨 Full metadata & embedded album art (title, artist, genre, year, lyrics, prompt)  
-- 📁 Optional monthly folders (2024-11, 2025-01, etc.)  
-- 🔄 Automatic retries on network errors  
-- ⚡ Super-fast concurrent downloads (10+ songs at once)  
-- 💾 Saves your token & settings forever  
-- ⏱️ Shows real-time progress, speed, and ETA  
+# 2. (Recommended) Create a virtual environment
+python -m venv venv
+source venv/bin/activate    # On Windows: venv\Scripts\activate
 
-## Installation (Windows only)
-1. Download → [`SunoApiDownloader.exe`](https://github.com/yourname/suno-downloader/releases/latest)  
-2. Double-click to run — **no installation needed!**  
-3. Done 🎉
+# 3. Install dependencies
+pip install -r requirements.txt
 
-## How to Use
+# 4. Run the GUI
+python suno_api_gui.py
+How to Build the Executable (Windows .exe) – for contributors
+Bash# Make sure you're in the activated virtual environment with all deps installed
 
-### Step 1: Get Your Auth Token
-**Method A (Recommended - works 99% of the time)**
-1. Click **"Get Token (Login)"** in the app  
-2. Log in to https://suno.com in your browser  
-3. Press **F12** → go to **Console** tab  
-4. Paste this and press Enter:
-   ```js
-   window.Clerk?.session?.getToken().then(t => prompt('Your token (copy this):', t))
-   ```
-5. Copy the token and paste it back into the app
+# One-file bundled executable (recommended for distribution)
+pyinstaller --onefile --windowed --icon=icon.ico --name="SunoSync" suno_api_gui.py
 
-**Method B (if Method A fails)**
-1. Open https://suno.com and log in  
-2. Press F12 → Network tab  
-3. Click any song or refresh the page  
-4. Find a request to `api.suno.com` or `gql.suno.com`  
-5. Copy the value after `authorization: Bearer ` → that’s your token
+# Or with separate files + faster startup (smaller updates)
+# pyinstaller --onedir --windowed --icon=icon.ico --name="SunoSync" suno_api_gui.py
 
-🔑 **Never share your token** — it’s like giving someone full access to your Suno account!
+# The executable will be in ./dist/
+Extra PyInstaller tips used in the official build:
+Bash--add-data "icon.ico;."              # include the app icon
+--add-data "README.md;."             # optional
+--hidden-import=plyer.platforms.win.notification  # fixes missing tray icon on some systems
+Project Structure
+textSunoSync/  
+├── suno_api_gui.py          # Main application (PyQt6)  
+├── downloader.py            # Core downloading logic  
+├── utils.py                 # Metadata embedding, ID3, etc.  
+├── icon.ico                 # App icon  
+├── requirements.txt  
+├── LICENSE                  # MIT License  
+└── .gitignore  
 
-### Step 2: Configure (recommended settings)
-- ✅ **Embed Metadata & Art** → ON (highly recommended)  
-- ⬜ **Organize by Month** → ON (keeps things tidy if you have 1000+ songs)  
-- **Start from Page** → 1 (or higher to resume)  
-- **Max Pages** → 0 = download everything  
+## License
+This project is licensed under the MIT License – see the LICENSE file for details.
 
-### Step 3: Download!
-1. Click **START DOWNLOAD**  
-2. Grab coffee ☕ — it’s fast  
-3. Click **Open Folder** when finished  
+## Legal Notice & Responsible Use
+- Only use this software to back up music you personally generated on Suno.com  
+- Do not redistribute downloaded songs (this violates Suno’s ToS and risks account termination)  
+- The developer is not responsible for any account bans or consequences of misuse  
 
-## Example Workflows
+Made with ❤️ for the Suno AI community  
+If you appreciate this tool, consider supporting it: https://buymeacoffee.com/audioalchemy
 
-| Goal                        | Start from Page | Max Pages | Result                     |
-|-----------------------------|-----------------|-----------|----------------------------|
-| Download everything         | 1               | 0         | Your full library          |
-| First 500 songs             | 1               | 10        | ~500 oldest songs          |
-| Next 1000 songs             | 11              | 20        | Pages 11–30                |
-| Resume after crash          | 23              | 0         | Continues from page 23     |
+---
 
-## Tips & Tricks
-- Already downloaded songs are **automatically skipped**  
-- Use **STOP** anytime — just restart later and it resumes perfectly  
-- Large libraries (>5000 songs) Download in chunks of 20–30 pages  
-- Want clean filenames? Keep “Embed Metadata” ON  
+### Recommended files to create right now:
 
-## Requirements
-- Windows 10 or 11 (64-bit)  
-- Internet connection  
-- Active Suno account (free or paid)
+**`requirements.txt`**
+```txt
+PyQt6>=6.7.0
+requests>=2.31.0
+tqdm>=4.66.0
+mutagen>=1.47.0
+Pillow>=10.0.0
+plyer>=2.1.0
+pyinstaller>=6.0.0
+LICENSE (MIT)
+textMIT License
 
-## Known Issues
-- Very rarely, Suno changes their API → token stops working (just get a new one)  
-- Some extremely old songs (pre-June 2024) may have missing metadata
+Copyright (c) 2025 Your Name / AudioAlchemy
 
-## Support the Developer
-Loved this tool? Buy me a coffee! ☕  
-→ https://buymeacoffee.com/audioalchemy
-
-## Made with ❤️ for the Suno AI community
-
-(Last updated: November 26, 2025)
+Permission is hereby granted, free of charge, to any person obtaining a copy...
+(standard MIT text)
+.gitignore
+gitignore__pycache__/
+*.pyc
+venv/
+build/
+dist/
+*.spec
+*.token
+config.json
+SunoSync.exe
+Now you’re ready to push the repo to GitHub with full transparency and easy contribution/build instructions! Let me know if you want a dark mode version of the README with badges, screenshots, or GitHub Actions for auto-builds, etc. 🚀
