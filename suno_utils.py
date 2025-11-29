@@ -1,0 +1,327 @@
+import os
+import re
+import time
+import threading
+import requests
+import math
+from mutagen.id3 import ID3, APIC, TIT2, TPE1, TCON, COMM, TDRC, TYER, USLT, TXXX, error
+from mutagen.mp3 import MP3
+from mutagen.wave import WAVE
+
+
+def get_uuid_from_file(filepath):
+    """
+    Extract SUNO_UUID from audio file metadata.
+    Returns None if UUID not found or file cannot be read.
+    """
+    try:
+        ext = os.path.splitext(filepath)[1].lower()
+        if ext == ".wav":
+            audio = WAVE(filepath)
+        elif ext == ".mp3":
+            audio = MP3(filepath, ID3=ID3)
+        else:
+            return None
+        
+        if not hasattr(audio, 'tags') or audio.tags is None:
+            return None
+        
+        # Look for SUNO_UUID in TXXX tags
+        for key in audio.tags.keys():
+            if key.startswith("TXXX:"):
+                tag = audio.tags[key]
+                if hasattr(tag, 'desc') and tag.desc == "SUNO_UUID":
+                    return str(tag.text[0]) if tag.text else None
+        
+        return None
+    except Exception:
+        return None
+
+
+def build_uuid_cache(directory):
+    """
+    Scan directory recursively and build a set of all UUIDs found in audio files.
+    Returns a set of UUID strings.
+    """
+    uuid_cache = set()
+    if not os.path.exists(directory):
+        return uuid_cache
+    
+    for root, dirs, files in os.walk(directory):
+        for filename in files:
+            if filename.lower().endswith(('.mp3', '.wav')):
+                filepath = os.path.join(root, filename)
+                uuid = get_uuid_from_file(filepath)
+                if uuid:
+                    uuid_cache.add(uuid)
+    
+    return uuid_cache
+
+
+FILENAME_BAD_CHARS = r'[<>:"/\\|?*\x00-\x1F]'
+
+
+def hex_to_rgb(color):
+    color = color.lstrip("#")
+    if len(color) == 6:
+        return tuple(int(color[i:i+2], 16) for i in (0, 2, 4))
+    elif len(color) == 8:
+        return tuple(int(color[i:i+2], 16) for i in (0, 2, 4))
+    return (0, 0, 0)
+
+
+def rgb_to_hex(rgb):
+    return "#{:02x}{:02x}{:02x}".format(*rgb)
+
+
+def blend_colors(color_a, color_b, ratio):
+    a = hex_to_rgb(color_a)
+    b = hex_to_rgb(color_b)
+    ratio = max(0.0, min(1.0, ratio))
+    return rgb_to_hex(tuple(int(max(0, min(255, a[i] + (b[i] - a[i]) * ratio))) for i in range(3)))
+
+
+def lighten_color(color, amount=0.1):
+    rgb = hex_to_rgb(color)
+    return rgb_to_hex(tuple(max(0, min(255, int(c + (255 - c) * amount))) for c in rgb))
+
+
+def sanitize_filename(name, maxlen=200):
+    safe = re.sub(FILENAME_BAD_CHARS, "_", name)
+    safe = safe.strip(" .")
+    return safe[:maxlen] if len(safe) > maxlen else safe
+
+
+def get_unique_filename(filename):
+    if not os.path.exists(filename):
+        return filename
+    name, extn = os.path.splitext(filename)
+    counter = 2
+    while True:
+        new_filename = f"{name} v{counter}{extn}"
+        if not os.path.exists(new_filename):
+            return new_filename
+        counter += 1
+
+
+def get_downloaded_uuids(directory):
+    uuids = set()
+    if not os.path.exists(directory):
+        return uuids
+
+    for root, dirs, files in os.walk(directory):
+        for fname in files:
+            if fname.lower().endswith(".mp3"):
+                try:
+                    audio = ID3(os.path.join(root, fname))
+                    for frame in audio.getall("TXXX"):
+                        if frame.desc == "SUNO_UUID":
+                            uuids.add(frame.text[0])
+                except:
+                    pass
+    return uuids
+
+
+class RateLimiter:
+    """Simple token-style rate limiter that enforces a minimum delay between calls."""
+
+    def __init__(self, min_interval=0.0):
+        self.min_interval = max(0.0, float(min_interval))
+        self._lock = threading.Lock()
+        self._next_allowed = time.monotonic()
+
+    def wait(self):
+        if self.min_interval <= 0:
+            return
+        with self._lock:
+            now = time.monotonic()
+            delay = self._next_allowed - now
+            if delay > 0:
+                time.sleep(delay)
+                now = time.monotonic()
+            self._next_allowed = now + self.min_interval
+
+
+def embed_metadata(
+    audio_path,
+    image_url=None,
+    title=None,
+    artist=None,
+    album=None,
+    genre=None,
+    year=None,
+    comment=None,
+    lyrics=None,
+    uuid=None,
+    token=None,
+    timeout=15,
+    metadata_options=None,
+):
+    """
+    Embed metadata into MP3 or WAV files.
+    
+    metadata_options: dict with keys 'title', 'artist', 'genre', 'year', 
+                     'comment', 'lyrics', 'album_art', 'uuid' (all bool)
+    """
+    if metadata_options is None:
+        # Default: include all metadata
+        metadata_options = {
+            'title': True, 'artist': True, 'genre': True, 'year': True,
+            'comment': True, 'lyrics': True, 'album_art': True, 'uuid': True
+        }
+    
+    headers = {"Authorization": f"Bearer {token}"} if token else {}
+    try:
+        # Determine file type
+        ext = os.path.splitext(audio_path)[1].lower()
+        is_wav = ext == ".wav"
+        
+        # Load audio file
+        if is_wav:
+            audio = WAVE(audio_path)
+        else:
+            audio = MP3(audio_path, ID3=ID3)
+        
+        # Add ID3 tags if they don't exist
+        if not hasattr(audio, 'tags') or audio.tags is None:
+            audio.add_tags()
+        
+        # Get image if needed
+        image_bytes = None
+        mime = "image/jpeg"
+        if metadata_options.get('album_art', True) and image_url:
+            r = requests.get(image_url, headers=headers, timeout=timeout)
+            if r.status_code == 200:
+                image_bytes = r.content
+                mime = r.headers.get("Content-Type", "image/jpeg").split(";")[0]
+
+        # Embed metadata fields based on options
+        if metadata_options.get('title', True) and title:
+            audio.tags["TIT2"] = TIT2(encoding=3, text=title)
+        if metadata_options.get('artist', True) and artist:
+            audio.tags["TPE1"] = TPE1(encoding=3, text=artist)
+        if metadata_options.get('genre', True) and genre:
+            audio.tags["TCON"] = TCON(encoding=3, text=genre)
+        if metadata_options.get('year', True) and year:
+            audio.tags["TDRC"] = TDRC(encoding=3, text=str(year))
+            audio.tags["TYER"] = TYER(encoding=3, text=str(year))
+        if metadata_options.get('comment', True) and comment:
+            audio.tags["COMM"] = COMM(encoding=3, lang="eng", desc="Description", text=comment)
+        
+        # 1. Extract Lyrics
+        # Suno stores lyrics in 'prompt'. We check 'lyrics' and 'text' just in case.
+        # Note: 'lyrics' variable already contains the extracted text from suno_downloader.py
+        lyrics_text = lyrics
+        
+        # DEBUG: Print to console to prove we actually found text
+        if lyrics_text:
+            print(f"Lyrics found ({len(lyrics_text)} chars). Attempting embed...")
+        else:
+            print("No lyrics found in metadata.")
+
+        if lyrics_text and metadata_options.get('lyrics', True):
+            try:
+                file_path_lower = audio_path.lower()
+
+                # --- OPTION A: MP3 FILES ---
+                if file_path_lower.endswith(".mp3"):
+                    try:
+                        # We need to open it as ID3 to add frames directly
+                        # The existing 'audio' object for MP3 is MP3(path, ID3=ID3)
+                        # So audio.tags IS the ID3 object.
+                        # But the user wants to be strict.
+                        # I'll use the existing 'audio' object if it's MP3, as it's already correct.
+                        # audio.tags.add(USLT(...))
+                        # But wait, the user's code re-opens it.
+                        # "audio = ID3(file_path)"
+                        # If I do that, I need to save it separately.
+                        # But 'audio' (the main one) is saved at the end of the function.
+                        # If I modify the file separately, 'audio.save()' might overwrite it?
+                        # Or 'audio.save()' might fail if file changed?
+                        # Actually, 'audio' is mutagen.mp3.MP3 or mutagen.wave.WAVE.
+                        # I should use the 'audio' object I already have!
+                        # The user's code is standalone. I need to integrate it.
+                        
+                        # For MP3:
+                        if isinstance(audio, MP3):
+                             audio.tags.add(USLT(encoding=3, lang='eng', desc='Lyrics', text=lyrics_text))
+                        
+                        # For WAV:
+                        elif isinstance(audio, WAVE):
+                            # WAVs need a specific ID3 chunk added first
+                            if audio.tags is None:
+                                audio.add_tags()
+                            
+                            # Now we can add the ID3 frame to the WAV
+                            audio.tags.add(USLT(encoding=3, lang='eng', desc='Lyrics', text=lyrics_text))
+                            
+                        print(f"Lyrics successfully embedded for {os.path.basename(audio_path)}")
+
+                    except Exception as e:
+                        print(f"Critical Tagging Error: {e}")
+                
+                # The user's code had a separate block for WAV.
+                # My integration above handles both using the 'audio' object.
+                # This is cleaner and safer than re-opening the file.
+                
+            except Exception as e:
+                print(f"Failed to embed lyrics: {e}")
+
+        if metadata_options.get('uuid', True) and uuid:
+            audio.tags.add(TXXX(encoding=3, desc="SUNO_UUID", text=uuid))
+
+        if image_bytes:
+            for key in list(audio.tags.keys()):
+                if key.startswith("APIC"):
+                    del audio.tags[key]
+            audio.tags.add(APIC(encoding=3, mime=mime, type=3, desc="Cover", data=image_bytes))
+
+        audio.save(v2_version=3)
+    except Exception as e:
+        print(f"Metadata error: {e}")
+
+
+# --- GUI UTILS ---
+def truncate_path(path, max_length=40):
+    """Truncate path with middle ellipsis."""
+    if len(path) <= max_length:
+        return path
+    folder_name = os.path.basename(path)
+    parent = os.path.dirname(path)
+    if len(folder_name) > max_length - 10:
+        return f"...{folder_name[-max_length+3:]}"
+    return f"{parent[:15]}...{os.sep}{folder_name}"
+
+
+def create_tooltip(widget, text):
+    """Create a tooltip for a widget."""
+    def on_enter(event):
+        # Destroy existing tooltip if any
+        if hasattr(widget, 'tooltip'):
+            try:
+                widget.tooltip.destroy()
+            except:
+                pass
+            del widget.tooltip
+            
+        import tkinter as tk
+        tooltip = tk.Toplevel()
+        tooltip.wm_overrideredirect(True)
+        tooltip.wm_geometry(f"+{event.x_root+10}+{event.y_root+10}")
+        label = tk.Label(tooltip, text=text, bg="#2d2d2d", fg="#e0e0e0",
+                       font=("Segoe UI", 9), padx=8, pady=4, relief="solid", borderwidth=1)
+        label.pack()
+        widget.tooltip = tooltip
+    
+    def on_leave(event):
+        if hasattr(widget, 'tooltip'):
+            try:
+                widget.tooltip.destroy()
+            except:
+                pass
+            del widget.tooltip
+    
+    widget.bind("<Enter>", on_enter)
+    widget.bind("<Leave>", on_leave)
+    widget.bind("<ButtonPress>", on_leave)
+
