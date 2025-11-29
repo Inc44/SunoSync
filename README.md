@@ -6,6 +6,9 @@ SunoSync V2 is the ultimate desktop manager for your Suno AI music generation. I
 
 ![SunoSync Splash](resources/splash.png)
 
+
+Buy the exe here : https://justinmurray99.gumroad.com/l/rrxty
+
 ## 🌟 Key Features
 
 ### 📥 Smart Downloader
