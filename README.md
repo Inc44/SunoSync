@@ -66,7 +66,7 @@ The Reality: ✅ 69/72 Security Vendors found NO issues (Clean) ⚠️ 3/72 flag
 
 These flags occur because the app is "unsigned" (common for indie devs). You can verify the file yourself below:
 
-➢ Click here to view the live VirusTotal Report
+[➢ Click here to view the live VirusTotal Report](https://www.virustotal.com/gui/file/85e33b35d1c508a5f5a1baa457a3892ce9f5f95d228b3b60aa94d8e3797f259e?nocache=1)
 
 
 
