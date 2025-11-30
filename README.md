@@ -13,6 +13,8 @@ https://ko-fi.com/s/374c24251c -  PayPal accepted here
 
 https://justinmurray99.gumroad.com/l/rrxty
 
+Discord Support and Community : https://discord.gg/kZSc8sKUZR
+
 
 ## 🌟 Key Features
 
