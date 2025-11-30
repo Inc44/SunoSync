@@ -1,17 +1,18 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 import os
-from suno_utils import read_song_metadata, save_lyrics_to_file
+from suno_utils import read_song_metadata, save_lyrics_to_file, open_file
 from theme_manager import ThemeManager
 
 
 class LibraryTab(tk.Frame):
     """Library tab for browsing and playing downloaded songs."""
     
-    def __init__(self, parent, download_path="Suno_Downloads", **kwargs):
+    def __init__(self, parent, config_manager, **kwargs):
         super().__init__(parent, **kwargs)
         
-        self.download_path = download_path
+        self.config_manager = config_manager
+        self.download_path = self.config_manager.get("path", "")
         self.all_songs = []  # Full song list
         self.filtered_songs = []  # Filtered by search
         
@@ -150,8 +151,11 @@ class LibraryTab(tk.Frame):
         """Scan download folder and populate tree."""
         self.all_songs = []
         
-        if not os.path.exists(self.download_path):
-            messagebox.showwarning("Library", f"Download folder not found: {self.download_path}")
+        # Update path from config
+        self.download_path = self.config_manager.get("path", "")
+        
+        if not self.download_path or not os.path.exists(self.download_path):
+            # Silent return if not set, or maybe just show empty
             return
         
         # Scan folder recursively
@@ -262,10 +266,11 @@ class LibraryTab(tk.Frame):
     
     def open_download_folder(self):
         """Open the main download directory."""
-        if os.path.exists(self.download_path):
-            os.startfile(self.download_path)
+        path = self.config_manager.get("path", "")
+        if path and os.path.exists(path):
+            open_file(path)
         else:
-            messagebox.showwarning("Error", "Download folder does not exist yet.")
+            messagebox.showwarning("Error", "Download folder not set or does not exist.\nPlease configure it in the Downloader tab.")
 
     def show_about(self):
         """Show about dialog."""
@@ -280,7 +285,7 @@ class LibraryTab(tk.Frame):
         filepath = self.get_selected_filepath()
         if filepath:
             folder = os.path.dirname(filepath)
-            os.startfile(folder)
+            open_file(folder)
     
     def edit_lyrics(self):
         """Open dialog to view/edit lyrics."""

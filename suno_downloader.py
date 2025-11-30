@@ -318,6 +318,11 @@ class SunoDownloader:
                         # It is liked if Boolean is True OR Reaction is 'L' OR Vote is 'up'
                         is_liked = is_liked_bool or (reaction_type == "L") or (vote == "up")
 
+                        # Extract metadata for filters
+                        metadata = song_data.get("metadata", {}) or {}
+                        if metadata is None: metadata = {}
+                        clip_type = metadata.get("type", "")
+
                         is_stem = self._is_stem(song_data)
 
                         # Trash Check

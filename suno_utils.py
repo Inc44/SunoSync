@@ -7,6 +7,21 @@ import math
 from mutagen.id3 import ID3, APIC, TIT2, TPE1, TCON, COMM, TDRC, TYER, USLT, TXXX, error
 from mutagen.mp3 import MP3
 from mutagen.wave import WAVE
+import platform
+import subprocess
+
+
+def open_file(path):
+    """Open file or folder with default system application."""
+    try:
+        if platform.system() == 'Windows':
+            os.startfile(path)
+        elif platform.system() == 'Darwin':  # macOS
+            subprocess.call(('open', path))
+        else:  # Linux
+            subprocess.call(('xdg-open', path))
+    except Exception as e:
+        print(f"Error opening file: {e}")
 
 
 def get_uuid_from_file(filepath):

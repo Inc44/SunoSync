@@ -7,6 +7,13 @@ import sys
 from library_tab import LibraryTab
 from player_widget import PlayerWidget
 from downloader_tab import DownloaderTab
+from config_manager import ConfigManager
+
+if getattr(sys, 'frozen', False):
+    base_path = os.path.dirname(sys.executable)
+else:
+    base_path = os.path.dirname(os.path.abspath(__file__))
+CONFIG_FILE = os.path.join(base_path, "config.json")
 
 
 def resource_path(relative_path):
@@ -58,7 +65,8 @@ class SunoSyncApp(tk.Tk):
         self.notebook.add(self.downloader, text="  Downloader  ")
         
         # Tab 2: Library
-        self.library = LibraryTab(self.notebook, download_path="Suno_Downloads")
+        self.config_manager = ConfigManager(CONFIG_FILE)
+        self.library = LibraryTab(self.notebook, config_manager=self.config_manager)
         self.notebook.add(self.library, text="  Library  ")
         
         # Player widget (bottom, fixed)

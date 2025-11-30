@@ -59,6 +59,9 @@ class DownloaderTab(tk.Frame):
         
         # Start GUI processor
         self._process_gui_queue()
+        
+        # Check for initial path setup
+        self.after(500, self.check_initial_path)
     
     def _apply_theme(self):
         t = self.theme_manager
@@ -347,7 +350,8 @@ class DownloaderTab(tk.Frame):
     def load_config_into_ui(self):
         c = self.config_manager
         self.token_var.set(c.get("token", ""))
-        self.path_var.set(c.get("path", os.path.join(base_path, "Suno_Downloads")))
+        self.token_var.set(c.get("token", ""))
+        self.path_var.set(c.get("path", ""))
         self.embed_thumb_var.set(c.get("embed_metadata", True))
         self.organize_var.set(c.get("organize", False))
         self.save_lyrics_var.set(c.get("save_lyrics", True))
@@ -566,6 +570,10 @@ class DownloaderTab(tk.Frame):
             messagebox.showerror("Error", "Please enter a Bearer Token.")
             return
 
+        if not self.path_var.get():
+            messagebox.showerror("Error", "Please select a download folder.")
+            return
+
         self.save_config()
         self.toggle_action_buttons(downloading=True)
         self.update_status_safe("Preloading...")
@@ -625,6 +633,10 @@ class DownloaderTab(tk.Frame):
         token = self.token_var.get().strip()
         if not token:
             messagebox.showerror("Error", "Please enter a Bearer Token.")
+            return
+
+        if not self.path_var.get():
+            messagebox.showerror("Error", "Please select a download folder.")
             return
 
         self.save_config()
@@ -700,3 +712,11 @@ class DownloaderTab(tk.Frame):
                 self.update_status_safe("Error")
 
 
+
+    def check_initial_path(self):
+        """Check if download path is set, if not prompt user."""
+        current_path = self.path_var.get()
+        if not current_path or not os.path.exists(current_path):
+            response = messagebox.askyesno("Setup", "Download folder not set or invalid.\nWould you like to select one now?")
+            if response:
+                self.browse_path()
