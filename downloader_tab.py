@@ -38,10 +38,14 @@ CONFIG_FILE = os.path.join(base_path, "config.json")
 
 # --- DOWNLOADER TAB (Refactored for tab view) ---
 class DownloaderTab(tk.Frame):
-    def __init__(self, parent, **kwargs):
+    def __init__(self, parent, config_manager=None, **kwargs):
         super().__init__(parent, **kwargs)
         
-        self.config_manager = ConfigManager(CONFIG_FILE)
+        if config_manager:
+            self.config_manager = config_manager
+        else:
+            self.config_manager = ConfigManager(CONFIG_FILE)
+            
         self.theme_manager = ThemeManager()
         
         # Map theme properties to self for compatibility with layout helpers
@@ -720,3 +724,6 @@ class DownloaderTab(tk.Frame):
             response = messagebox.askyesno("Setup", "Download folder not set or invalid.\nWould you like to select one now?")
             if response:
                 self.browse_path()
+    def browse_path(self):
+        """Alias for browse_folder for compatibility."""
+        self.browse_folder()

@@ -62,14 +62,14 @@ class SunoSyncApp(tk.Tk):
         self.notebook = ttk.Notebook(main_frame)
         self.notebook.pack(fill="both", expand=True, padx=0, pady=0)
         
+        # Shared Config Manager
+        self.config_manager = ConfigManager(CONFIG_FILE)
+        
         # Tab 1: Downloader
-        self.downloader = DownloaderTab(self.notebook)
+        self.downloader = DownloaderTab(self.notebook, config_manager=self.config_manager)
         self.notebook.add(self.downloader, text="  Downloader  ")
         
         # Tab 2: Library
-        self.config_manager = ConfigManager(CONFIG_FILE)
-        # Tab 2: Library
-        self.config_manager = ConfigManager(CONFIG_FILE)
         self.library = LibraryTab(self.notebook, config_manager=self.config_manager, cache_file=CACHE_FILE, tags_file=TAGS_FILE)
         self.notebook.add(self.library, text="  Library  ")
         
