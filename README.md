@@ -8,8 +8,8 @@ SunoSync V2 is the ultimate desktop manager for your Suno AI music generation. I
 
 **Buy the exe or compile yourself below for free:**
 
-- https://ko-fi.com/s/374c24251c - PayPal accepted here
-- https://justinmurray99.gumroad.com/l/rrxty
+- https://ko-fi.com/s/374c24251c - PayPal accepted here  [$3 or pay what you want]
+- https://justinmurray99.gumroad.com/l/rrxty  [$3 or pay what you want]
 
 **Discord Support and Community:** https://discord.gg/kZSc8sKUZR
 
@@ -74,7 +74,7 @@ We believe in 100% transparency. Because SunoSync is an indie tool built with Py
 
 These flags occur because the app is "unsigned" (common for indie devs). You can verify the file yourself below:
 
-[➢ Click here to view the live VirusTotal Report](https://www.virustotal.com/gui/file/008405d9f373cae2de87f8208094ecaff4532123440e6c857a05e0a8831d25d5/summary)
+[➢ Click here to view the live VirusTotal Report](https://www.virustotal.com/gui/file/691ec3ad17ff18171b2499ed6c460db0fb1fb6015223eaa37c0cf06cdb92fc30?nocache=1)
 
 ## ☕ Support
 
