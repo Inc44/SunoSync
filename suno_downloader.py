@@ -13,6 +13,7 @@ from suno_utils import (
 	embed_metadata,
 	sanitize_filename,
 	get_unique_filename,
+	transform_image_url_to_large,
 )
 
 GEN_API_BASE = "https://studio-api.prod.suno.com"
@@ -836,6 +837,8 @@ class SunoDownloader:
 
 		title = clip.get("title") or uuid
 		image_url = clip.get("image_url")
+		if image_url:
+			image_url = transform_image_url_to_large(image_url)
 		display_name = clip.get("display_name")
 		metadata = clip.get("metadata", {})
 		prompt = metadata.get("prompt", "")
@@ -883,7 +886,7 @@ class SunoDownloader:
 		target_dir = directory
 		if self.config.get("organize_by_month") and created_at:
 			try:
-				month_folder = created_at[:7]
+				month_folder = created_at[:7].replace("-", "")
 				target_dir = os.path.join(directory, month_folder)
 				if not os.path.exists(target_dir):
 					os.makedirs(target_dir)
@@ -902,7 +905,8 @@ class SunoDownloader:
 				pass
 
 		ext = file_ext or ".mp3"
-		fname = sanitize_filename(title) + ext
+		artist_prefix = f"{display_name} - " if display_name else ""
+		fname = sanitize_filename(f"{artist_prefix}{title}") + ext
 		out_path = os.path.join(target_dir, fname)
 		if os.path.exists(out_path):
 			out_path = get_unique_filename(out_path)
@@ -949,7 +953,12 @@ class SunoDownloader:
 			if lyrics and self.config.get("save_lyrics", True):
 				txt_path = os.path.splitext(out_path)[0] + ".txt"
 				with open(txt_path, "w", encoding="utf-8") as f:
+					f.write("Lyrics\n")
 					f.write(lyrics)
+					f.write("\nStyle of Music\n")
+					f.write(tags or "")
+					f.write("\nTitle\n")
+					f.write(title or "")
 
 			# Always embed metadata if enabled, or at least embed lyrics
 			if self.config.get("embed_metadata"):

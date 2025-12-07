@@ -11,6 +11,14 @@ import platform
 import subprocess
 
 
+def transform_image_url_to_large(url):
+	if not url:
+		return url
+	url = url.split("?")[0]
+	url = url.replace("/image_", "/image_large_")
+	return url
+
+
 def open_file(path):
 	"""Open file or folder with default system application."""
 	try:
@@ -244,7 +252,7 @@ def get_unique_filename(filename):
 	name, extn = os.path.splitext(filename)
 	counter = 2
 	while True:
-		new_filename = f"{name} v{counter}{extn}"
+		new_filename = f"{name} {counter}{extn}"
 		if not os.path.exists(new_filename):
 			return new_filename
 		counter += 1
@@ -355,7 +363,7 @@ def embed_metadata(
 		if metadata_options.get("genre", True) and genre:
 			audio.tags["TCON"] = TCON(encoding=3, text=genre)
 		if metadata_options.get("year", True) and year:
-			audio.tags["TDRC"] = TDRC(encoding=3, text=str(year))
+			# audio.tags["TDRC"] = TDRC(encoding=3, text=str(year))
 			audio.tags["TYER"] = TYER(encoding=3, text=str(year))
 		if metadata_options.get("comment", True) and comment:
 			audio.tags["COMM"] = COMM(
